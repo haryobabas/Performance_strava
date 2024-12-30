@@ -1,0 +1,68 @@
+import requests
+import pandas as pd
+from datetime import datetime
+
+class StravaAPI:
+    def __init__(self, client_id, client_secret, refresh_token):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.refresh_token = refresh_token
+        self.access_token = self._get_access_token()
+
+    def _get_access_token(self):
+        auth_url = "https://www.strava.com/oauth/token"
+        payload = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'refresh_token': self.refresh_token,
+            'grant_type': 'refresh_token'
+        }
+        
+        response = requests.post(auth_url, data=payload)
+        return response.json()['access_token']
+
+    def get_activities(self, per_page=30, page=1):
+        activities_url = "https://www.strava.com/api/v3/athlete/activities"
+        headers = {'Authorization': f'Bearer {self.access_token}'}
+        params = {'per_page': per_page, 'page': page}
+        
+        response = requests.get(activities_url, headers=headers, params=params)
+        return response.json()
+
+def main():
+    # Replace these with your credentials
+    CLIENT_ID = 'your_client_id'
+    CLIENT_SECRET = 'your_client_secret'
+    REFRESH_TOKEN = 'your_refresh_token'
+
+    # Initialize the Strava API client
+    strava = StravaAPI(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
+
+    # Get activities
+    activities = strava.get_activities(per_page=100)  # Adjust per_page as needed
+
+    # Create a list to store activity data
+    activity_data = []
+
+    for activity in activities:
+        activity_data.append({
+            'id': activity['id'],
+            'name': activity['name'],
+            'type': activity['type'],
+            'distance': activity['distance'],
+            'moving_time': activity['moving_time'],
+            'elapsed_time': activity['elapsed_time'],
+            'total_elevation_gain': activity['total_elevation_gain'],
+            'start_date': activity['start_date'],
+            'average_speed': activity['average_speed'],
+            'max_speed': activity['max_speed']
+        })
+
+    # Convert to DataFrame
+    df = pd.DataFrame(activity_data)
+    
+    # Save to CSV
+    df.to_csv('strava_activities.csv', index=False)
+
+if __name__ == "__main__":
+    main()
